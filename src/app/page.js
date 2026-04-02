@@ -1,65 +1,171 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/app/lib/supabase";
 
 export default function Home() {
+  const router = useRouter();
+  const [clientes, setClientes] = useState([]);
+  const [carregandoLista, setCarregandoLista] = useState(true);
+  const [salvandoFoto, setSalvandoFoto] = useState(false);
+  
+  // NOVO: Estado para controlar se a visualização é "lista" ou "grid"
+  const [modoVisualizacao, setModoVisualizacao] = useState("lista");
+
+  useEffect(() => {
+    buscarClientes();
+  }, []);
+
+  const buscarClientes = async () => {
+    try {
+      setCarregandoLista(true);
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*")
+        .order("criado_em", { ascending: false });
+
+      if (error) throw error;
+      setClientes(data || []);
+    } catch (erro) {
+      console.error("Erro ao buscar clientes:", erro);
+      alert("Erro ao carregar a lista. Verifique a conexão.");
+    } finally {
+      setCarregandoLista(false);
+    }
+  };
+
+  const lidarComNovaFoto = async (evento) => {
+    const arquivo = evento.target.files[0];
+    if (!arquivo) return;
+
+    try {
+      setSalvandoFoto(true);
+      const nomeArquivo = `${Date.now()}-${arquivo.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("midias")
+        .upload(nomeArquivo, arquivo);
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from("midias")
+        .getPublicUrl(nomeArquivo);
+
+      const { error: dbError } = await supabase
+        .from("clientes")
+        .insert([{ foto_url: publicUrlData.publicUrl }]);
+      if (dbError) throw dbError;
+
+      if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate([100, 50, 100]);
+      }
+
+      await buscarClientes();
+    } catch (erro) {
+      console.error("Erro ao salvar cliente:", erro);
+      alert("Não foi possível salvar o cliente.");
+    } finally {
+      setSalvandoFoto(false);
+      evento.target.value = null; 
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="min-h-screen bg-gray-100 relative pb-24">
+      {/* Header Atualizado com Botão de Alternância */}
+      <header className="bg-green-600 text-white p-5 shadow-md sticky top-0 z-10 flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Meus Clientes</h1>
+        
+        {/* Botão para trocar entre Lista e Grid */}
+        <button 
+          onClick={() => setModoVisualizacao(modoVisualizacao === "lista" ? "grid" : "lista")}
+          className="bg-green-700 p-3 rounded-xl text-2xl active:bg-green-800 transition-colors shadow-sm flex items-center justify-center"
+        >
+          {modoVisualizacao === "lista" ? "🔲" : "📄"}
+        </button>
+      </header>
+
+      <div className="w-full max-w-lg mx-auto">
+        
+        {carregandoLista && (
+          <div className="flex flex-col items-center justify-center p-10 text-gray-500">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-green-600 mb-4"></div>
+            <p className="text-lg">Carregando contatos...</p>
+          </div>
+        )}
+
+        {!carregandoLista && clientes.length === 0 && (
+          <div className="flex flex-col items-center justify-center p-12 text-center text-gray-400 mt-10">
+            <div className="text-6xl mb-4">📭</div>
+            <p className="text-xl">Nenhum cliente ainda.</p>
+            <p className="text-md mt-2">Toque no botão verde abaixo para adicionar a primeira foto.</p>
+          </div>
+        )}
+
+        {/* Lógica de Renderização: Lista vs Grid */}
+        {!carregandoLista && clientes.length > 0 && (
+          <>
+            {modoVisualizacao === "lista" ? (
+              // MODO LISTA (O original)
+              <ul className="flex flex-col bg-white">
+                {clientes.map((cliente) => (
+                  <li 
+                    key={cliente.id} 
+                    className="flex items-center p-4 border-b border-gray-200 active:bg-gray-100 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/cliente/${cliente.id}`)}
+                  >
+                    <img 
+                      src={cliente.foto_url} 
+                      alt="Cliente" 
+                      className="w-20 h-20 rounded-full object-cover border-2 border-gray-100 shadow-sm"
+                    />
+                    <div className="ml-auto text-gray-300 text-3xl">›</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              // MODO GRID (Grade de fotos quadradas grandes)
+              <div className="grid grid-cols-2 gap-4 p-4">
+                {clientes.map((cliente) => (
+                  <div 
+                    key={cliente.id} 
+                    className="bg-white rounded-2xl shadow-md overflow-hidden active:scale-95 transition-transform cursor-pointer border border-gray-200"
+                    onClick={() => router.push(`/cliente/${cliente.id}`)}
+                  >
+                    <img 
+                      src={cliente.foto_url} 
+                      alt="Cliente" 
+                      className="w-full aspect-square object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {salvandoFoto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
+           <div className="bg-white p-6 rounded-2xl flex flex-col items-center shadow-xl">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-green-600 mb-3"></div>
+              <p className="text-lg font-bold text-gray-700">Salvando foto...</p>
+           </div>
+        </div>
+      )}
+
+      {/* Botão Flutuante (FAB) */}
+      <label className="fixed bottom-6 right-6 w-16 h-16 bg-green-500 rounded-full shadow-lg flex items-center justify-center text-white text-4xl cursor-pointer hover:bg-green-600 active:scale-95 transition-all z-30">
+        <span>+</span>
+        <input 
+          type="file" 
+          accept="image/*" 
+          className="hidden" 
+          onChange={lidarComNovaFoto}
+          disabled={salvandoFoto}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </label>
+    </main>
   );
 }
