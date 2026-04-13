@@ -34,7 +34,9 @@ export function useClients() {
 
       await fetchClientes();
     } catch (erro) {
-      alert("Não foi possível salvar o cliente.");
+        console.error("ERRO DETALHADO NO HOOK:", erro); // ISSO vai te dar a linha vermelha que falta
+        alert("Erro ao carregar a lista.");
+        
     } finally {
       setSalvandoFoto(false);
       evento.target.value = null; 
