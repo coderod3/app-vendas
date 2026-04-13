@@ -1,83 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/app/lib/supabase";
+import { useState } from "react";
+import { useClients } from "@/hooks/useClients";
+import ClientCard from "@/components/ClientCard";
 
 export default function Home() {
-  const router = useRouter();
-  const [clientes, setClientes] = useState([]);
-  const [carregandoLista, setCarregandoLista] = useState(true);
-  const [salvandoFoto, setSalvandoFoto] = useState(false);
+  // O Hook gerencia toda a lógica complexa de dados
+  const { clientes, carregandoLista, salvandoFoto, adicionarCliente } = useClients();
   
-  // NOVO: Estado para controlar se a visualização é "lista" ou "grid"
+  // O componente gerencia apenas a lógica visual
   const [modoVisualizacao, setModoVisualizacao] = useState("lista");
-
-  useEffect(() => {
-    buscarClientes();
-  }, []);
-
-  const buscarClientes = async () => {
-    try {
-      setCarregandoLista(true);
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("*")
-        .order("criado_em", { ascending: false });
-
-      if (error) throw error;
-      setClientes(data || []);
-    } catch (erro) {
-      console.error("Erro ao buscar clientes:", erro);
-      alert("Erro ao carregar a lista. Verifique a conexão.");
-    } finally {
-      setCarregandoLista(false);
-    }
-  };
-
-  const lidarComNovaFoto = async (evento) => {
-    const arquivo = evento.target.files[0];
-    if (!arquivo) return;
-
-    try {
-      setSalvandoFoto(true);
-      const nomeArquivo = `${Date.now()}-${arquivo.name}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("midias")
-        .upload(nomeArquivo, arquivo);
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage
-        .from("midias")
-        .getPublicUrl(nomeArquivo);
-
-      const { error: dbError } = await supabase
-        .from("clientes")
-        .insert([{ foto_url: publicUrlData.publicUrl }]);
-      if (dbError) throw dbError;
-
-      if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
-        window.navigator.vibrate([100, 50, 100]);
-      }
-
-      await buscarClientes();
-    } catch (erro) {
-      console.error("Erro ao salvar cliente:", erro);
-      alert("Não foi possível salvar o cliente.");
-    } finally {
-      setSalvandoFoto(false);
-      evento.target.value = null; 
-    }
-  };
 
   return (
     <main className="min-h-screen bg-gray-100 relative pb-24">
-      {/* Header Atualizado com Botão de Alternância */}
+      
+      {/* Header */}
       <header className="bg-green-600 text-white p-5 shadow-md sticky top-0 z-10 flex justify-between items-center">
         <h1 className="text-2xl font-bold">Meus Clientes</h1>
-        
-        {/* Botão para trocar entre Lista e Grid */}
         <button 
           onClick={() => setModoVisualizacao(modoVisualizacao === "lista" ? "grid" : "lista")}
           className="bg-green-700 p-3 rounded-xl text-2xl active:bg-green-800 transition-colors shadow-sm flex items-center justify-center"
@@ -86,6 +25,7 @@ export default function Home() {
         </button>
       </header>
 
+      {/* Conteúdo Central */}
       <div className="w-full max-w-lg mx-auto">
         
         {carregandoLista && (
@@ -103,49 +43,24 @@ export default function Home() {
           </div>
         )}
 
-        {/* Lógica de Renderização: Lista vs Grid */}
         {!carregandoLista && clientes.length > 0 && (
-          <>
-            {modoVisualizacao === "lista" ? (
-              // MODO LISTA (O original)
-              <ul className="flex flex-col bg-white">
-                {clientes.map((cliente) => (
-                  <li 
-                    key={cliente.id} 
-                    className="flex items-center p-4 border-b border-gray-200 active:bg-gray-100 transition-colors cursor-pointer"
-                    onClick={() => router.push(`/cliente/${cliente.id}`)}
-                  >
-                    <img 
-                      src={cliente.foto_url} 
-                      alt="Cliente" 
-                      className="w-20 h-20 rounded-full object-cover border-2 border-gray-100 shadow-sm"
-                    />
-                    <div className="ml-auto text-gray-300 text-3xl">›</div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              // MODO GRID (Grade de fotos quadradas grandes)
-              <div className="grid grid-cols-2 gap-4 p-4">
-                {clientes.map((cliente) => (
-                  <div 
-                    key={cliente.id} 
-                    className="bg-white rounded-2xl shadow-md overflow-hidden active:scale-95 transition-transform cursor-pointer border border-gray-200"
-                    onClick={() => router.push(`/cliente/${cliente.id}`)}
-                  >
-                    <img 
-                      src={cliente.foto_url} 
-                      alt="Cliente" 
-                      className="w-full aspect-square object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+          modoVisualizacao === "lista" ? (
+            <ul className="flex flex-col bg-white">
+              {clientes.map((cliente) => (
+                <ClientCard key={cliente.id} cliente={cliente} modoVisualizacao="lista" />
+              ))}
+            </ul>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 p-4">
+              {clientes.map((cliente) => (
+                <ClientCard key={cliente.id} cliente={cliente} modoVisualizacao="grid" />
+              ))}
+            </div>
+          )
         )}
       </div>
 
+      {/* Overlays e Botões Flutuantes */}
       {salvandoFoto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
            <div className="bg-white p-6 rounded-2xl flex flex-col items-center shadow-xl">
@@ -155,17 +70,17 @@ export default function Home() {
         </div>
       )}
 
-      {/* Botão Flutuante (FAB) */}
       <label className="fixed bottom-6 right-6 w-16 h-16 bg-green-500 rounded-full shadow-lg flex items-center justify-center text-white text-4xl cursor-pointer hover:bg-green-600 active:scale-95 transition-all z-30">
         <span>+</span>
         <input 
           type="file" 
           accept="image/*" 
           className="hidden" 
-          onChange={lidarComNovaFoto}
+          onChange={adicionarCliente}
           disabled={salvandoFoto}
         />
       </label>
+      
     </main>
   );
 }
