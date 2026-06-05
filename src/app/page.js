@@ -48,7 +48,7 @@ export default function Home() {
         <div className="header-logo">Venda<span>Fácil</span></div>
         <button className="icon-btn" onClick={() => setIsModalOpen(true)}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M10 3v14M3 10h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M10 3v14M3 10h14" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
           </svg>
         </button>
       </header>
@@ -56,8 +56,8 @@ export default function Home() {
       <div className="search-wrap">
         <div className="search-bar">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <circle cx="7.5" cy="7.5" r="5" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-            <path d="M11.5 11.5L15 15" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="7.5" cy="7.5" r="5" stroke="rgba(255,255,255,0.7)" strokeWidth="2"/>
+            <path d="M11.5 11.5L15 15" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round"/>
           </svg>
           <input 
             type="text" 

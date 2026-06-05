@@ -7,7 +7,9 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configurações originais do Next ficam aqui
+  // Libera o IP do seu celular para acessar o servidor de desenvolvimento
+  allowedDevOrigins: ['192.168.0.107'],
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;
+

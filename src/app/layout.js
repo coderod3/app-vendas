@@ -11,25 +11,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// O bloco original fica apenas com os dados de texto e o manifest
 export const metadata = {
-  title: "App de Vendas",
-  description: "Registro rápido de clientes",
-  manifest: "/manifest.json", 
+  title: "VendaFácil",
+  description: "Controle de vendas por voz",
+  manifest: "/manifest.json", // Importante manter para o PWA depois
 };
 
-// CRIE ESTE BLOCO NOVO AQUI:
+// ADICIONE ESTE BLOCO AQUI: Isso diz ao celular para não diminuir o site
 export const viewport = {
-  themeColor: "#22c55e",
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="pt-BR">
+      <body>{children}</body>
     </html>
   );
 }

@@ -10,7 +10,7 @@ export default function RecordControl({ estaGravando, processandoAudio, iniciarG
       >
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
           <path d="M16 4a5 5 0 015 5v8a5 5 0 01-10 0V9a5 5 0 015-5z" fill="white"/>
-          <path d="M6 15a10 10 0 0020 0M16 25v3" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M6 15a10 10 0 0020 0M16 25v3" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
         </svg>
       </button>
       <div className="record-label">{estaGravando ? "Gravando..." : "Segure para gravar"}</div>
