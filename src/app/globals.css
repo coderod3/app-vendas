@@ -1,26 +1,59 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --orange: #FF6B35;
+  --orange-dark: #E8530A;
+  --purple: #6C3CE1;
+  --purple-dark: #5228C8;
+  --green: #1DB954;
+  --green-dark: #16923F;
+  --red: #EF4444;
+  --red-dark: #DC2626;
+  --amber: #F59E0B;
+  --bg: #F8F4FF;
+  --surface: #FFFFFF;
+  --surface2: #F3EEF9;
+  --text: #1A1230;
+  --text-muted: #8880A8;
+  --border: #E8E0F4;
+  --radius: 20px;
+  --shadow: 0 4px 20px rgba(108,60,225,0.12);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Nunito', sans-serif;
+  background: #2B1B6B; /* Fundo escuro atrás do celular */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
+
+/* O "Corpo" do celular que seu amigo desenhou */
+.phone-wrap {
+  width: 100%;
+  max-width: 420px;
+  height: 90vh;
+  max-height: 860px;
+  background: var(--bg);
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 480px) {
+  .phone-wrap { height: 100vh; max-height: 100vh; border-radius: 0; }
+}
+
+/* Scroll area personalizada */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-area::-webkit-scrollbar { display: none; }

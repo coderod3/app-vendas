@@ -18,28 +18,17 @@ export function useClients() {
     }
   };
 
-  const adicionarCliente = async (evento) => {
-    const arquivo = evento.target.files[0];
-    if (!arquivo) return;
-
+  const adicionarCliente = async (nome, arquivo) => { // Recebe nome e arquivo
     try {
       setSalvandoFoto(true);
-      
-      // A mágica acontece aqui: chamamos o serviço sem nos importar com os detalhes do Supabase
-      await clientService.create(arquivo);
-
-      if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
-        window.navigator.vibrate([100, 50, 100]);
-      }
-
+      await clientService.create(nome, arquivo);
       await fetchClientes();
+      return { success: true };
     } catch (erro) {
-        console.error("ERRO DETALHADO NO HOOK:", erro); // ISSO vai te dar a linha vermelha que falta
-        alert("Erro ao carregar a lista.");
-        
+      alert("Não foi possível salvar o cliente.");
+      return { success: false };
     } finally {
       setSalvandoFoto(false);
-      evento.target.value = null; 
     }
   };
 
