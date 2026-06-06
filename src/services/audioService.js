@@ -13,13 +13,15 @@ export const audioService = {
 
   async uploadAndSave(clienteId, blob) {
     const fileName = `audios/${clienteId}-${Date.now()}.webm`;
+    
+    // Upload do áudio
     const { error: uploadError } = await supabase.storage.from("midias").upload(fileName, blob);
     if (uploadError) throw uploadError;
 
     const { data: publicUrlData } = supabase.storage.from("midias").getPublicUrl(fileName);
     const audioUrl = publicUrlData.publicUrl;
 
-    let resumoIA = "";
+    let resumoIA = "Erro ao processar com IA";
     let valorIA = 0;
 
     try {
@@ -29,24 +31,30 @@ export const audioService = {
         body: JSON.stringify({ audioUrl })
       });
 
-      const data = await iaResponse.json();
+      let data;
+      try {
+        data = await iaResponse.json();
+      } catch (e) {
+        data = { error: "Resposta inválida do servidor" };
+      }
 
       if (!iaResponse.ok) {
-        // AQUI VAI APARECER O ERRO REAL
-        console.error("❌ ERRO DO SERVIDOR DETALHADO:", data.error);
-        throw new Error(data.error || "Erro desconhecido na API");
+        console.error("❌ ERRO DO SERVIDOR DETALHADO:", data.error || data);
+        resumoIA = data.error || "Erro na API de IA";
+        throw new Error(resumoIA);
       }
       
-      resumoIA = data.msg;
-      valorIA = data.valor;
-    } catch (erro) {
-      const erroTexto = await iaResponse.text();
-      console.error("❌ ERRO IA:", iaResponse.status, erroTexto);
-      resumoIA = `⚠️ Erro IA (${iaResponse.status}): ${erroTexto.substring(0,100)}`;
+      resumoIA = data.msg || "Venda registrada";
+      valorIA = data.valor || 0;
 
+    } catch (erro) {
+      console.error("❌ ERRO NO PROCESSAMENTO IA:", erro);
+      // Não tenta usar iaResponse aqui
+      resumoIA = `⚠️ Falha na IA: ${erro.message || "Erro desconhecido"}`;
       valorIA = 0;
     }
 
+    // Sempre tenta salvar no banco
     const { error: dbError } = await supabase.from("vendas").insert([{ 
       cliente_id: clienteId, 
       audio_url: audioUrl,
@@ -54,6 +62,11 @@ export const audioService = {
       valor: valorIA
     }]);
 
-    if (dbError) throw dbError;
+    if (dbError) {
+      console.error("Erro ao salvar no banco:", dbError);
+      throw dbError;
+    }
+
+    console.log("✅ Venda salva com sucesso:", { resumoIA, valorIA });
   }
-};
+}
