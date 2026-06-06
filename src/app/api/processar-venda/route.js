@@ -1,38 +1,30 @@
+// src/app/api/processar-venda/route.js
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Inicializa o Gemini usando a chave secreta do servidor
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function POST(request) {
   try {
-    // 1. Puxa a chave de dentro da rota para garantir a leitura atualizada no servidor
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("❌ CHAVE DA API NÃO ENCONTRADA!");
       return NextResponse.json({ error: "Chave API não configurada." }, { status: 500 });
     }
 
-    // 2. Recebe a URL do áudio que o frontend enviou
     const { audioUrl } = await request.json();
+    if (!audioUrl) return NextResponse.json({ error: "URL do áudio não fornecida" }, { status: 400 });
 
-    if (!audioUrl) {
-      return NextResponse.json({ error: "URL do áudio não fornecida" }, { status: 400 });
-    }
-
-    // 3. Faz o download do áudio do Supabase para a memória do nosso servidor (Buffer)
-    console.log("⬇️ Baixando áudio do Supabase para a IA...");
+    console.log("⬇️ Baixando áudio:", audioUrl);
     const audioResponse = await fetch(audioUrl);
+    if (!audioResponse.ok) throw new Error(`Falha ao baixar áudio: ${audioResponse.status}`);
+
     const arrayBuffer = await audioResponse.arrayBuffer();
     const base64Audio = Buffer.from(arrayBuffer).toString("base64");
 
-    // 4. Configura o Gemini 1.5 Flash (Ultrarrápido e Multimodal)
-    const model = genAI.getGenerativeModel({
+    const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash-002",
-      generationConfig: {
-        // O PULO DO GATO: Forçamos a IA a responder estritamente em JSON!
-        responseMimeType: "application/json",
-      }
+      generationConfig: { responseMimeType: "application/json" }
     });
 
     // 5. O Prompt de Engenharia com Roteamento Condicional e Exemplos
@@ -91,28 +83,33 @@ export async function POST(request) {
 
     Extraia as informações do áudio anexado aplicando as regras acima e retorne APENAS o objeto JSON.`;
 
-    // 6. Envia o áudio e o prompt de uma só vez
     const result = await model.generateContent([
       prompt,
-      {
-        inlineData: {
-          mimeType: "audio/webm", // O formato que o nosso MediaRecorder grava
-          data: base64Audio
-        }
-      }
+      { inlineData: { mimeType: "audio/webm", data: base64Audio } }
     ]);
 
-    // 7. Retorna o JSON perfeito para o Frontend
-    let textoResposta = result.response.text();
-    console.log("🤖 Resposta Bruta do Gemini:", textoResposta);
+    let textoResposta = result.response.text().trim();
+    console.log("🤖 Resposta Gemini:", textoResposta);
 
-    // Limpeza de segurança (Remove as crases do markdown que quebram o Parse)
-    textoResposta = textoResposta.replace(/```json/gi, "").replace(/```/g, "").trim();
-    
-    return NextResponse.json(JSON.parse(textoResposta));
+    // Melhor limpeza
+    textoResposta = textoResposta.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(textoResposta);
+    } catch (parseErr) {
+      console.error("Erro parse JSON:", parseErr, textoResposta);
+      // Fallback
+      parsed = { msg: textoResposta.substring(0, 200), valor: 0 };
+    }
+
+    return NextResponse.json({ msg: parsed.msg || "", valor: parsed.valor || 0 });
 
   } catch (erro) {
     console.error("❌ ERRO NA API DE IA:", erro);
-    return NextResponse.json({ error: "Falha ao processar o áudio com IA" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Falha ao processar o áudio com IA", 
+      details: erro.message 
+    }, { status: 500 });
   }
 }

@@ -40,8 +40,10 @@ export const audioService = {
       resumoIA = data.msg;
       valorIA = data.valor;
     } catch (erro) {
-      console.error("❌ ERRO NO AUDIO SERVICE:", erro.message);
-      resumoIA = "ERRO: " + erro.message; // Isso vai aparecer no seu card na tela
+      const erroTexto = await iaResponse.text();
+      console.error("❌ ERRO IA:", iaResponse.status, erroTexto);
+      resumoIA = `⚠️ Erro IA (${iaResponse.status}): ${erroTexto.substring(0,100)}`;
+
       valorIA = 0;
     }
 
