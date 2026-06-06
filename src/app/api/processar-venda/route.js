@@ -23,7 +23,7 @@ export async function POST(request) {
     const base64Audio = Buffer.from(arrayBuffer).toString("base64");
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: process.env.GEMINI_MODEL,
       generationConfig: { responseMimeType: "application/json" }
     });
 
