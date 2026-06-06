@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// Inicializa o Gemini usando a chave secreta do servidor
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 export async function POST(request) {
   try {
     // 1. Puxa a chave de dentro da rota para garantir a leitura atualizada no servidor
@@ -9,8 +12,6 @@ export async function POST(request) {
       console.error("❌ CHAVE DA API NÃO ENCONTRADA!");
       return NextResponse.json({ error: "Chave API não configurada." }, { status: 500 });
     }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
 
     // 2. Recebe a URL do áudio que o frontend enviou
     const { audioUrl } = await request.json();
@@ -27,7 +28,8 @@ export async function POST(request) {
 
     // 4. Configura o Gemini 1.5 Flash (Ultrarrápido e Multimodal)
     const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash-002",      generationConfig: {
+      model: "gemini-1.5-flash-002",
+      generationConfig: {
         // O PULO DO GATO: Forçamos a IA a responder estritamente em JSON!
         responseMimeType: "application/json",
       }
@@ -100,10 +102,11 @@ export async function POST(request) {
       }
     ]);
 
+    // 7. Retorna o JSON perfeito para o Frontend
     let textoResposta = result.response.text();
     console.log("🤖 Resposta Bruta do Gemini:", textoResposta);
 
-    // 7. Limpeza de segurança (Remove as crases do markdown que quebram o Parse)
+    // Limpeza de segurança (Remove as crases do markdown que quebram o Parse)
     textoResposta = textoResposta.replace(/```json/gi, "").replace(/```/g, "").trim();
     
     return NextResponse.json(JSON.parse(textoResposta));
