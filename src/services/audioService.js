@@ -29,20 +29,19 @@ export const audioService = {
         body: JSON.stringify({ audioUrl })
       });
 
-      if (iaResponse.ok) {
-        const iaData = await iaResponse.json();
-        resumoIA = iaData.msg || "";
-        valorIA = iaData.valor || 0;
-      } else {
-        const erroTexto = await iaResponse.text();
-        console.error("❌ ERRO RETORNADO PELA ROTA DE IA:", erroTexto);
-        // O Erro vai forçar a renderização do AudioCard!
-        resumoIA = "⚠️ Erro na IA: Verifique o Console (F12)"; 
-        valorIA = 0;
+      const data = await iaResponse.json();
+
+      if (!iaResponse.ok) {
+        // AQUI VAI APARECER O ERRO REAL
+        console.error("❌ ERRO DO SERVIDOR DETALHADO:", data.error);
+        throw new Error(data.error || "Erro desconhecido na API");
       }
+      
+      resumoIA = data.msg;
+      valorIA = data.valor;
     } catch (erro) {
-      console.error("❌ FALHA DE REDE AO CONTATAR A IA:", erro);
-      resumoIA = "⚠️ Servidor da IA Inacessível";
+      console.error("❌ ERRO NO AUDIO SERVICE:", erro.message);
+      resumoIA = "ERRO: " + erro.message; // Isso vai aparecer no seu card na tela
       valorIA = 0;
     }
 
