@@ -12,27 +12,27 @@ export function useClients() {
       const data = await clientService.getAll();
       setClientes(data);
     } catch (erro) {
-      alert("Erro ao carregar a lista. Verifique a conexão com a internet.");
+      // O Console nos dirá a verdade exata sobre o erro
+      console.error("⚠️ DETECTADO ERRO NO FETCH DE CLIENTES:", erro);
     } finally {
       setCarregandoLista(false);
     }
   };
 
-  const adicionarCliente = async (nome, arquivo) => { // Recebe nome e arquivo
+  const adicionarCliente = async (nome, arquivo) => {
     try {
       setSalvandoFoto(true);
       await clientService.create(nome, arquivo);
       await fetchClientes();
       return { success: true };
     } catch (erro) {
-      alert("Não foi possível salvar o cliente.");
+      console.error("⚠️ ERRO AO CRIAR CLIENTE:", erro);
       return { success: false };
     } finally {
       setSalvandoFoto(false);
     }
   };
 
-  // Carrega os clientes assim que o hook é utilizado
   useEffect(() => {
     fetchClientes();
   }, []);
