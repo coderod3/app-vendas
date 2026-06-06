@@ -1,24 +1,31 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Inicializa o Gemini usando a chave secreta do servidor
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 export async function POST(request) {
   try {
-    // 1. Recebe a URL do áudio que o frontend enviou
+    // 1. Puxa a chave de dentro da rota para garantir a leitura atualizada no servidor
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("❌ CHAVE DA API NÃO ENCONTRADA!");
+      return NextResponse.json({ error: "Chave API não configurada." }, { status: 500 });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+
+    // 2. Recebe a URL do áudio que o frontend enviou
     const { audioUrl } = await request.json();
 
     if (!audioUrl) {
       return NextResponse.json({ error: "URL do áudio não fornecida" }, { status: 400 });
     }
 
-    // 2. Faz o download do áudio do Supabase para a memória do nosso servidor (Buffer)
+    // 3. Faz o download do áudio do Supabase para a memória do nosso servidor (Buffer)
+    console.log("⬇️ Baixando áudio do Supabase para a IA...");
     const audioResponse = await fetch(audioUrl);
     const arrayBuffer = await audioResponse.arrayBuffer();
     const base64Audio = Buffer.from(arrayBuffer).toString("base64");
 
-    // 3. Configura o Gemini 1.5 Flash (Ultrarrápido e Multimodal)
+    // 4. Configura o Gemini 1.5 Flash (Ultrarrápido e Multimodal)
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       generationConfig: {
@@ -27,7 +34,7 @@ export async function POST(request) {
       }
     });
 
-    // 4. O Prompt de Engenharia
+    // 5. O Prompt de Engenharia com Roteamento Condicional e Exemplos
     const prompt = `Você é um assistente financeiro especializado em extração de dados estruturados.
     Sua tarefa é ouvir o áudio, identificar a intenção do usuário e converter as informações em um formato JSON estrito.
 
@@ -83,7 +90,7 @@ export async function POST(request) {
 
     Extraia as informações do áudio anexado aplicando as regras acima e retorne APENAS o objeto JSON.`;
 
-    // 5. Envia o áudio e o prompt de uma só vez
+    // 6. Envia o áudio e o prompt de uma só vez
     const result = await model.generateContent([
       prompt,
       {
@@ -94,12 +101,16 @@ export async function POST(request) {
       }
     ]);
 
-    // 6. Retorna o JSON perfeito para o Frontend
-    const textoResposta = result.response.text();
+    let textoResposta = result.response.text();
+    console.log("🤖 Resposta Bruta do Gemini:", textoResposta);
+
+    // 7. Limpeza de segurança (Remove as crases do markdown que quebram o Parse)
+    textoResposta = textoResposta.replace(/```json/gi, "").replace(/```/g, "").trim();
+    
     return NextResponse.json(JSON.parse(textoResposta));
 
   } catch (erro) {
-    console.error("Erro na API de IA:", erro);
+    console.error("❌ ERRO NA API DE IA:", erro);
     return NextResponse.json({ error: "Falha ao processar o áudio com IA" }, { status: 500 });
   }
 }
