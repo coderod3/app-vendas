@@ -27,8 +27,7 @@ export async function POST(request) {
 
     // 4. Configura o Gemini 1.5 Flash (Ultrarrápido e Multimodal)
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
-      generationConfig: {
+        model: "gemini-1.5-flash-002",      generationConfig: {
         // O PULO DO GATO: Forçamos a IA a responder estritamente em JSON!
         responseMimeType: "application/json",
       }
