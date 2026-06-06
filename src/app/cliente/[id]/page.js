@@ -27,11 +27,15 @@ export default function ClientePage({ params }) {
   if (!cliente) return null;
 
   // Lógicas de UI
-  const iniciais = cliente.nome ? cliente.nome.charAt(0).toUpperCase() : "C";
-  const ultimaGravacao = audios.length > 0 
-    ? new Date(audios[0].criado_em).toLocaleDateString('pt-BR') 
-    : "Nenhuma";
-
+    const iniciais = cliente.nome ? cliente.nome.charAt(0).toUpperCase() : "C";
+    const ultimaGravacao = audios.length > 0 
+      ? new Date(audios[0].criado_em).toLocaleDateString('pt-BR') 
+      : "Nenhuma";
+      
+    // NOVO: Cálculo Financeiro Instantâneo
+    const totalDevido = audios.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
+    const formatadorMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  
   return (
     <div className="phone-wrap">
       
@@ -54,14 +58,16 @@ export default function ClientePage({ params }) {
       </header>
 
       {/* ESTATÍSTICAS */}
+      {/* ESTATÍSTICAS */}
       <div className="audio-header-ext">
         <div className="stat-pill">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1a3 3 0 013 3v3a3 3 0 01-6 0V4a3 3 0 013-3z" fill="white"/><path d="M2 6a5 5 0 0010 0M7 11v2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
-          <span>Total: {audios.length}</span>
+          <span>{audios.length}</span>
         </div>
-        <div className="stat-pill">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="white" strokeWidth="1.5"/><path d="M7 4v3l2 2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
-          <span>Última: {ultimaGravacao}</span>
+        
+        {/* NOVA PILL DE DINHEIRO */}
+        <div className="stat-pill highlight-money">
+          💰 {formatadorMoeda.format(totalDevido)}
         </div>
       </div>
 
@@ -103,6 +109,7 @@ export default function ClientePage({ params }) {
         .stat-pill { background: rgba(255,255,255,0.18); border-radius: 12px; padding: 6px 14px; font-size: 13px; font-weight: 700; color: white; display: flex; align-items: center; gap: 6px; }
         
         .audio-list { padding: 12px 16px 120px; display: flex; flex-direction: column; }
+        .highlight-money { background: #1DB954; color: white; font-size: 14px; }
       `}</style>
     </div>
   );

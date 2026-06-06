@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useClients } from "@/hooks/useClients";
 import ClientCard from "@/components/ClientCard";
 import Drawer from "@/components/Drawer";
+import { useToast } from "@/contexts/ToastContext";
 
 export default function Home() {
   const { clientes, carregandoLista, salvandoFoto, adicionarCliente } = useClients();
@@ -11,8 +12,12 @@ export default function Home() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [termoBusca, setTermoBusca] = useState("");
+  const { showToast } = useToast(); 
 
-  // CORREÇÃO: Lógica de busca robusta que não quebra com clientes antigos (sem nome)
+  // Soma de todos os clientes
+  const totalGlobal = clientes.reduce((acc, curr) => acc + (curr.total_devido || 0), 0);
+  const formatadorMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
   const clientesFiltrados = clientes.filter(c => {
     const nomeSeguro = c.nome || "Registro Antigo";
     return nomeSeguro.toLowerCase().includes(termoBusca.toLowerCase());
@@ -23,18 +28,25 @@ export default function Home() {
     const nome = e.target.nome.value;
     const arquivo = e.target.foto.files[0];
     
-    if (!nome || !arquivo) return alert("Por favor, preencha o nome e selecione uma foto!");
+    if (!nome || !arquivo) {
+      showToast("⚠️ Preencha o nome e escolha uma foto!");
+      return;
+    }
     
+    showToast("A guardar cliente... ⏳"); 
     const res = await adicionarCliente(nome, arquivo);
+    
     if (res.success) {
       setIsModalOpen(false);
-      e.target.reset(); // Limpa o formulário
+      e.target.reset();
+      showToast("Cliente salvo! ✅"); 
+    } else {
+      showToast("❌ Falha ao guardar cliente.");
     }
   };
 
   return (
     <div className="phone-wrap">
-      {/* CORREÇÃO: Drawer só existe no HTML se isDrawerOpen for true (evita o "flash") */}
       {isDrawerOpen && <Drawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />}
 
       <header className="header">
@@ -45,7 +57,13 @@ export default function Home() {
             <rect x="2" y="14" width="16" height="2.5" rx="1.25" fill="white"/>
           </svg>
         </button>
-        <div className="header-logo">Venda<span>Fácil</span></div>
+        
+        {/* NOVO: Painel Financeiro no Cabeçalho */}
+        <div className="header-info">
+          <span className="header-label">A Receber</span>
+          <span className="header-total">{formatadorMoeda.format(totalGlobal)}</span>
+        </div>
+
         <button className="icon-btn" onClick={() => setIsModalOpen(true)}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M10 3v14M3 10h14" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
@@ -110,7 +128,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* CORREÇÃO: Modal com renderização condicional para evitar o "flash" inicial */}
       {isModalOpen && (
         <div className="modal-overlay open" onClick={() => setIsModalOpen(false)}>
           <form className="modal-sheet" onClick={e => e.stopPropagation()} onSubmit={handleSubmitNovoCliente}>
@@ -139,8 +156,12 @@ export default function Home() {
 
       <style jsx>{`
         .header { height: 64px; background: var(--purple); display: flex; align-items: center; padding: 0 16px; gap: 12px; color: white; flex-shrink: 0; }
-        .header-logo { font-size: 22px; font-weight: 900; flex: 1; letter-spacing: -0.5px; }
-        .header-logo span { color: #FFD166; }
+        
+        /* CSS do Painel Financeiro do Cabeçalho */
+        .header-info { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding-left: 4px; }
+        .header-label { font-size: 11px; color: rgba(255,255,255,0.7); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; line-height: 1; margin-bottom: 2px; }
+        .header-total { font-size: 20px; font-weight: 900; color: white; line-height: 1; }
+
         .icon-btn { width: 44px; height: 44px; background: rgba(255,255,255,0.15); border: none; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s; }
         .icon-btn:active { background: rgba(255,255,255,0.3); }
         
@@ -151,7 +172,7 @@ export default function Home() {
 
         .view-toggle { display: flex; gap: 6px; padding: 12px 16px 8px; background: var(--surface); border-bottom: 1.5px solid var(--border); flex-shrink: 0; align-items: center; }
         .toggle-btn { padding: 8px 16px; border-radius: 12px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-        .toggle-btn.active { background: var(--purple); color: white; shadow: 0 4px 12px rgba(108,60,225,0.2); }
+        .toggle-btn.active { background: var(--purple); color: white; box-shadow: 0 4px 12px rgba(108,60,225,0.2); }
         .toggle-btn:not(.active) { background: var(--surface2); color: var(--text-muted); }
         
         .section-label { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }

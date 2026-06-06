@@ -1,13 +1,20 @@
 import { supabase } from "./supabaseClient";
 
 export const clientService = {
-  async getAll() {
+  async getTodos() { //getAll
+    // Adicionamos o "vendas(valor)" para o Supabase já trazer a matemática junto!
     const { data, error } = await supabase
       .from("clientes")
-      .select("*")
+      .select("*, vendas(valor)")
       .order("criado_em", { ascending: false });
+
     if (error) throw error;
-    return data || [];
+
+    // Calcula o total individual já no momento de buscar
+    return data.map(cliente => ({
+      ...cliente,
+      total_devido: cliente.vendas ? cliente.vendas.reduce((sum, v) => sum + (Number(v.valor) || 0), 0) : 0
+    }));
   },
 
   async getById(id) {

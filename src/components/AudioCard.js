@@ -21,7 +21,7 @@ export default function AudioCard({ audio, index }) {
     setIsPlaying(!isPlaying);
   };
 
-  return (
+return (
     <div className={`audio-card ${isPlaying ? 'playing' : ''}`}>
       <div className="audio-number">Nº {index + 1}</div>
       
@@ -51,9 +51,21 @@ export default function AudioCard({ audio, index }) {
           </svg>
           <span className="audio-date">{dataFormatada}</span>
         </div>
+
+        {/* NOVA SEÇÃO: Resultado da IA */}
+        {audio.resumo && (
+          <div className="audio-ai-box">
+            <span className="ai-text">🤖 {audio.resumo}</span>
+            {Number(audio.valor) > 0 && (
+              <span className="ai-value">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(audio.valor)}
+              </span>
+            )}
+          </div>
+        )}
+
       </div>
 
-      {/* O player real fica invisível, nós apenas o controlamos pelo React */}
       <audio 
         ref={audioRef} 
         src={audio.audio_url} 
@@ -62,17 +74,23 @@ export default function AudioCard({ audio, index }) {
       />
 
       <style jsx>{`
-        .audio-card { background: var(--surface); border-radius: 20px; padding: 14px 16px; border: 1.5px solid var(--border); display: flex; align-items: center; gap: 14px; position: relative; transition: all 0.2s; margin-bottom: 10px; }
+        /* ... Mantenha o CSS anterior e adicione apenas estes no final ... */
+        .audio-card { background: var(--surface); border-radius: 20px; padding: 14px 16px; border: 1.5px solid var(--border); display: flex; align-items: flex-start; gap: 14px; position: relative; transition: all 0.2s; margin-bottom: 10px; }
         .audio-card.playing { border-color: var(--green); background: #F0FFF6; }
-        .play-btn { width: 52px; height: 52px; border-radius: 50%; background: var(--green); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 14px rgba(29,185,84,0.35); transition: all 0.2s; }
+        .play-btn { width: 52px; height: 52px; border-radius: 50%; background: var(--green); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 14px rgba(29,185,84,0.35); transition: all 0.2s; margin-top: 4px; }
         .play-btn.playing-btn { background: var(--orange); box-shadow: 0 4px 14px rgba(255,107,53,0.35); }
-        .audio-info { flex: 1; overflow: hidden; }
+        .audio-info { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
         .audio-waveform { display: flex; align-items: center; gap: 2px; height: 28px; margin-bottom: 6px; }
         .wf-bar { width: 3px; border-radius: 2px; background: var(--border); transition: background 0.1s; }
         .audio-card.playing .wf-bar { background: var(--green); }
         .audio-footer { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
         .audio-date { font-size: 12px; font-weight: 600; }
         .audio-number { position: absolute; top: -8px; left: 12px; background: var(--purple); color: white; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 8px; }
+        
+        /* CSS DA IA */
+        .audio-ai-box { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); gap: 8px; }
+        .ai-text { font-size: 13px; color: var(--text); font-style: italic; line-height: 1.3; }
+        .ai-value { background: #D1FAE5; color: #065F46; padding: 4px 8px; border-radius: 8px; font-weight: 800; font-size: 13px; white-space: nowrap; }
       `}</style>
     </div>
   );

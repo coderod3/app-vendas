@@ -12,22 +12,45 @@ export const audioService = {
   },
 
   async uploadAndSave(clienteId, blob) {
+    // 1. Faz o Upload do Áudio para o Storage
     const fileName = `audios/${clienteId}-${Date.now()}.webm`;
-    const { error: uploadError } = await supabase.storage
-      .from("midias")
-      .upload(fileName, blob);
+    const { error: uploadError } = await supabase.storage.from("midias").upload(fileName, blob);
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData } = supabase.storage
-      .from("midias")
-      .getPublicUrl(fileName);
+    // 2. Pega a URL pública do áudio
+    const { data: publicUrlData } = supabase.storage.from("midias").getPublicUrl(fileName);
+    const audioUrl = publicUrlData.publicUrl;
 
-    const { error: dbError } = await supabase
-      .from("vendas")
-      .insert([{ 
-        cliente_id: clienteId, 
-        audio_url: publicUrlData.publicUrl 
-      }]);
+    // 3. Chama a nossa API de IA
+    let resumoIA = "";
+    let valorIA = 0;
+
+    try {
+      const iaResponse = await fetch("/api/processar-venda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audioUrl })
+      });
+
+      if (iaResponse.ok) {
+        const iaData = await iaResponse.json();
+        resumoIA = iaData.msg || "";
+        valorIA = iaData.valor || 0;
+      } else {
+        console.error("Erro na API da IA:", await iaResponse.text());
+      }
+    } catch (erro) {
+      console.error("Falha ao comunicar com a rota de IA:", erro);
+    }
+
+    // 4. Salva no banco de dados (Áudio + Dados da IA)
+    const { error: dbError } = await supabase.from("vendas").insert([{ 
+      cliente_id: clienteId, 
+      audio_url: audioUrl,
+      resumo: resumoIA,
+      valor: valorIA
+    }]);
+
     if (dbError) throw dbError;
   }
 };
