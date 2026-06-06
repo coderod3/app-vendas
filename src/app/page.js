@@ -13,6 +13,14 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [termoBusca, setTermoBusca] = useState("");
   const { showToast } = useToast(); 
+  const [fotoPreview, setFotoPreview] = useState(null);
+
+  const handleFotoChange = (e) => {
+    const arquivo = e.target.files[0];
+    if (arquivo) {
+      setFotoPreview(URL.createObjectURL(arquivo));
+    }
+  };
 
   // Soma de todos os clientes
   const totalGlobal = clientes.reduce((acc, curr) => acc + (curr.total_devido || 0), 0);
@@ -134,9 +142,22 @@ export default function Home() {
             <div className="modal-handle"></div>
             <div className="modal-title">Novo Cliente</div>
             
-            <input type="file" id="foto" name="foto" accept="image/*" className="hidden" required />
+            <input 
+              type="file" 
+              id="foto" 
+              name="foto" 
+              accept="image/*" 
+              style={{ display: 'none' }} 
+              onChange={handleFotoChange} 
+              required 
+            />
+
             <label htmlFor="foto" className="photo-picker">
-              <span>📸</span>
+              {fotoPreview ? (
+                <img src={fotoPreview} alt="Preview" className="photo-preview" />
+              ) : (
+                <span style={{ fontSize: '30px' }}>📸</span>
+              )}
               <div className="photo-badge">+</div>
             </label>
 
@@ -187,6 +208,49 @@ export default function Home() {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
         }
+
+        /* ... dentro do seu style jsx ... */
+        .photo-picker { 
+          width: 96px; 
+          height: 96px; 
+          border-radius: 50%; 
+          background: var(--surface2); 
+          border: 3px dashed var(--border); 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          margin: 0 auto 20px; 
+          cursor: pointer; 
+          position: relative; 
+          overflow: visible; /* ESSENCIAL: Permite que o badge apareça fora dos limites */
+        }
+
+        .photo-preview { 
+          width: 100%; 
+          height: 100%; 
+          border-radius: 50%; /* Garante que a imagem fique redonda */
+          object-fit: cover; 
+        }
+
+        .photo-badge { 
+          position: absolute; 
+          bottom: 0px; 
+          right: 0px; 
+          width: 30px; 
+          height: 30px; 
+          background: var(--orange); 
+          border-radius: 50%; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          border: 3px solid var(--surface); 
+          color: white; 
+          font-size: 20px; 
+          font-weight: 800;
+          box-shadow: 0 0 0 2px var(--surface);
+          z-index: 10; /* Garante que fique acima de tudo */
+        }
+        /* ... resto do seu css ... */
 
         .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 14px auto 22px; }
         .modal-title { font-size: 20px; font-weight: 900; color: var(--text); text-align: center; margin-bottom: 24px; }
