@@ -81,8 +81,7 @@ export default function ClientePage({ params }) {
             </div>
           ) : (
             audios.map((audio, index) => (
-              <AudioCard key={audio.id} audio={audio} index={index} />
-            ))
+              <AudioCard key={audio.id} audio={audio} index={index} onRefresh={recarregarDados} />            ))
           )}
         </div>
       </div>

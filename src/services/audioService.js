@@ -11,17 +11,28 @@ export const audioService = {
     return data || [];
   },
 
-  async uploadAndSave(clienteId, blob) {
+  async uploadAndSaveInicial(clienteId, blob) {
     const fileName = `audios/${clienteId}-${Date.now()}.webm`;
     
-    // Upload do áudio
     const { error: uploadError } = await supabase.storage.from("midias").upload(fileName, blob);
     if (uploadError) throw uploadError;
 
     const { data: publicUrlData } = supabase.storage.from("midias").getPublicUrl(fileName);
     const audioUrl = publicUrlData.publicUrl;
 
-    let resumoIA = "Erro ao processar com IA";
+    const { data, error: dbError } = await supabase.from("vendas").insert([{ 
+      cliente_id: clienteId, 
+      audio_url: audioUrl,
+      resumo: "PROCESSANDO",
+      valor: 0
+    }]).select();
+
+    if (dbError) throw dbError;
+    return data[0]; 
+  },
+
+  async processarIAEAtualizar(vendaId, audioUrl) {
+    let resumoIA = "ERRO_IA";
     let valorIA = 0;
 
     try {
@@ -35,38 +46,27 @@ export const audioService = {
       try {
         data = await iaResponse.json();
       } catch (e) {
-        data = { error: "Resposta inválida do servidor" };
+        data = { error: "Resposta invalida do servidor" };
       }
 
-      if (!iaResponse.ok) {
-        console.error("❌ ERRO DO SERVIDOR DETALHADO:", data.error || data);
-        resumoIA = data.error || "Erro na API de IA";
-        throw new Error(resumoIA);
+      if (iaResponse.ok) {
+        resumoIA = data.msg || "Venda registrada";
+        valorIA = data.valor || 0;
+      } else {
+        console.error("Erro na API de IA:", data.error || data);
       }
-      
-      resumoIA = data.msg || "Venda registrada";
-      valorIA = data.valor || 0;
-
     } catch (erro) {
-      console.error("❌ ERRO NO PROCESSAMENTO IA:", erro);
-      // Não tenta usar iaResponse aqui
-      resumoIA = `⚠️ Falha na IA: ${erro.message || "Erro desconhecido"}`;
-      valorIA = 0;
+      console.error("Erro no processamento IA:", erro);
     }
 
-    // Sempre tenta salvar no banco
-    const { error: dbError } = await supabase.from("vendas").insert([{ 
-      cliente_id: clienteId, 
-      audio_url: audioUrl,
+    const { error: updateError } = await supabase.from("vendas").update({
       resumo: resumoIA,
       valor: valorIA
-    }]);
+    }).eq("id", vendaId);
 
-    if (dbError) {
-      console.error("Erro ao salvar no banco:", dbError);
-      throw dbError;
+    if (updateError) {
+      console.error("Erro ao atualizar banco:", updateError);
+      throw updateError;
     }
-
-    console.log("✅ Venda salva com sucesso:", { resumoIA, valorIA });
   }
 }

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { audioService } from "@/services/audioService";
-import { useToast } from "@/contexts/ToastContext"; // 1. Importamos o Toast
+import { useToast } from "@/contexts/ToastContext";
 
 export function useAudioRecorder(clienteId, onUploadSuccess) {
   const [estaGravando, setEstaGravando] = useState(false);
@@ -9,7 +9,7 @@ export function useAudioRecorder(clienteId, onUploadSuccess) {
   const chunksRef = useRef([]);
   const isPressingRef = useRef(false);
   
-  const { showToast } = useToast(); // 2. Chamamos a função
+  const { showToast } = useToast();
 
   const iniciarGravacao = async () => {
     isPressingRef.current = true;
@@ -32,18 +32,28 @@ export function useAudioRecorder(clienteId, onUploadSuccess) {
 
       mediaRecorder.onstop = async () => {
         setProcessandoAudio(true);
-        showToast("✨ A IA está a analisar a venda...");
+        showToast("Salvando audio...");
         stream.getTracks().forEach(track => track.stop());
         
         const blobDoAudio = new Blob(chunksRef.current, { type: "audio/webm" });
         
         try {
-          await audioService.uploadAndSave(clienteId, blobDoAudio);
-          showToast("Venda registada com sucesso! ✅");
+          const novaVenda = await audioService.uploadAndSaveInicial(clienteId, blobDoAudio);
           if (onUploadSuccess) onUploadSuccess();
+          
+          showToast("Audio salvo. Analisando em segundo plano...");
+
+          audioService.processarIAEAtualizar(novaVenda.id, novaVenda.audio_url)
+            .then(() => {
+              if (onUploadSuccess) onUploadSuccess();
+            })
+            .catch(() => {
+              if (onUploadSuccess) onUploadSuccess();
+            });
+
         } catch (erro) {
           console.error("Erro ao salvar:", erro);
-          showToast("❌ Falha ao salvar a gravação."); // Toast de erro
+          showToast("Falha ao salvar a gravacao.");
         } finally {
           setProcessandoAudio(false);
         }
@@ -59,7 +69,7 @@ export function useAudioRecorder(clienteId, onUploadSuccess) {
     } catch (erro) {
       console.error("Erro de microfone:", erro);
       isPressingRef.current = false;
-      showToast("⚠️ Permita o uso do microfone no navegador."); // Trocamos o alert pelo Toast
+      showToast("Permita o uso do microfone no navegador.");
     }
   };
 
