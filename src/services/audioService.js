@@ -68,5 +68,10 @@ export const audioService = {
       console.error("Erro ao atualizar banco:", updateError);
       throw updateError;
     }
+  },
+
+  async delete(id) {
+    const { error } = await supabase.from("vendas").delete().eq("id", id);
+    if (error) throw error;
   }
-}
+};
